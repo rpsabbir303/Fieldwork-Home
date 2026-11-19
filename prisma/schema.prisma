@@ -1,0 +1,64 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model AdminUser {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Category {
+  id        String    @id @default(cuid())
+  name      String
+  slug      String    @unique
+  section   String
+  contents  Content[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Content {
+  id             String   @id @default(cuid())
+  section        String
+  slug           String
+  title          String
+  summary        String
+  category       String
+  categoryId     String?
+  categoryRecord Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  status         String   @default("DRAFT")
+  body           Json
+  related        Json     @default("[]")
+  tools          Json     @default("[]")
+  materials      Json     @default("[]")
+  safety         String?
+  seoTitle       String?
+  seoDescription String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  publishedAt    DateTime?
+  media          MediaReference[]
+
+  @@unique([section, slug])
+  @@index([section, status])
+}
+
+model MediaReference {
+  id        String   @id @default(cuid())
+  url       String
+  alt       String
+  credit    String?
+  contentId String?
+  content   Content? @relation(fields: [contentId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+}
