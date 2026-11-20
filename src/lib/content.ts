@@ -8,6 +8,8 @@ export type ContentItem = {
   summary: string;
   category: string;
   blocks: ContentBlock[];
+  richDoc?: import("./article").RichNode;
+  articleMeta?: import("./article").ArticleMeta;
   tools?: string[];
   materials?: string[];
   safety?: string;

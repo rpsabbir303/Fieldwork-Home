@@ -1,4 +1,4 @@
-# P0 Completion Report — Fieldwork Home
+﻿# P0 Completion Report â€” Fieldwork Home
 
 **Date:** November 20, 2026 (Asia/Dhaka)  
 **Scope:** Database, environment, and CMS activation only.
@@ -98,3 +98,26 @@ No P1, P2, or P3 items were worked on. In particular, project/editorial expansio
 1. Add a private `SESSION_SECRET` to `.env`; set `ADMIN_EMAIL` and `ADMIN_PASSWORD` privately in the shell, run `npm run admin:create`, and clear the shell variables in a later authorized step.
 2. Start the site and verify published public pages and search from Neon.
 3. When an administrator exists, test login, logout, dashboard counts, and a clearly identified disposable CMS record through create, edit, draft, publish, unpublish, and delete.
+
+## Admin dashboard implementation addendum â€” November 20, 2026
+
+A new admin console phase was implemented after the P0 database migration and seed. It adds a responsive admin shell; database-backed overview and content library with filters and pagination; category create/rename/safe delete; private saved-draft preview; local SEO metadata audit; GA4 Data API overview/page reporting architecture; on-demand PageSpeed Insights tests; settings status; and authenticated content CSV export. The six existing content sections remain editable. Existing published content, categories, public site structure, calculator formulas and database schema were preserved. No migration, seed, admin creation or production content mutation was performed in this phase.
+
+The same repository can now be built as separate public and admin deployments using `APP_MODE`. The public build blocks `/admin` routes in the server proxy. The admin build only serves admin routes and can enforce `ADMIN_HOSTNAME`. Both use the shared Neon database; the admin cookie remains host-only. Domain, DNS, Vercel projects, HTTPS and administrator provisioning still require external setup. See `ADMIN_DASHBOARD_DOCUMENTATION.md` for the exact deployment checklist.
+
+Analytics integration remains **unconfigured/unverified**: GA4 and PageSpeed environment values are absent in this workspace, no public GA4 transport is installed, and Search Console is not connected. The UI shows setup/error/empty states rather than fabricated traffic. Scheduling, media uploads, tags, rich editing, autosave, performance history, full reporting and website health are not complete. No authenticated CMS journey was tested because no administrator account/session exists. `SESSION_SECRET` was not present in the inspected local environment; its value was not printed or generated.
+
+Verification for this phase: `npm.cmd run typecheck` passed, `npm.cmd run lint` passed, and `npm.cmd run build` passed. `npm.cmd run test` failed before tests started due the restricted Windows `tsx`/Node `os.userInfo` ENOMEM error noted in the earlier report. The new routes and deployed host split have not been exercised against a live admin session or DNS configuration. This addendum supersedes the earlier report only for admin implementation status; its P0 database and seed results remain unchanged.
+
+Deployment smoke checks (local production server): with `APP_MODE=public`, `/admin`, `/admin/login`, and `/admin/reports/export` returned 404; `/calculators/paint` returned 200. `/guides` returned 500 because the restricted sandbox could not reach the configured Neon host, so database-backed public routes remain unverified here. With an `APP_MODE=admin` build, the configured admin Host header returned 200 for `/login`, 307 to login for unauthenticated `/admin`, 401 for the unauthenticated CSV endpoint, and 404 for `/guides`; a wrong Host header returned 404 for `/admin`. The admin-mode production build passed. These checks used only local HTTP requests and made no database writes.
+
+The five existing calculator tests subsequently passed when run with the permitted execution setting outside the restricted Windows sandbox. This supersedes the earlier ENOMEM-only test note for the calculator suite; no authenticated CMS or provider integration tests were run.
+
+## Phase 2 addendum â€” Article publishing
+
+Implemented a dedicated article list and Tiptap rich editor for the existing `guides` content type, with real draft autosave, manual save, publication controls, duplicate, private preview, featured-image URL/alt fields, category/tags/author, related paths, SEO/OG/canonical/noindex fields, safe public rich rendering, and sitemap exclusion for noindex articles. Existing seeded content remains in its legacy JSON format; new/edited articles use a versioned object within `Content.body`. No database migration, production write, seed, account creation, or unrelated content edit was performed.
+
+Verification: ten unit tests passed; TypeScript passed; lint passed with six nonblocking warnings; production builds passed in both `APP_MODE=public` and `APP_MODE=admin`. Local HTTP checks confirmed the public deployment returns 404 for article admin GET and save POST, and the admin deployment returns 307 for an anonymous article page and 401 for an anonymous save POST. Live authenticated CMS create/edit/autosave/publish/preview tests and database-backed public article display remain unverified because this workspace has no configured admin account/session and cannot reach the Neon host. File uploads, scheduling, archived status and revision history are not implemented. See `ADMIN_DASHBOARD_DOCUMENTATION.md` for workflow and limits.
+
+
+Further read-only verification with permitted Neon network access: the production database still has 32 content rows, 25 categories, and 0 administrator accounts. A local public-mode production server returned HTTP 200 for `/guides`, `/guides/choosing-interior-paint-finish`, and `/sitemap.xml`, and HTTP 404 for `/admin/articles`. This confirms legacy seeded article rendering on the public route. It does not verify rendering of a new rich article, which would require a safely created test record and an administrator session.

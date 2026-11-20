@@ -12,10 +12,12 @@ export async function generateMetadata({
     ? {
         title: item.seoTitle || item.title,
         description: item.seoDescription || item.summary,
-        alternates: { canonical: "/guides/" + slug },
+        alternates: { canonical: item.articleMeta?.canonicalUrl || "/guides/" + slug },
+        robots: item.articleMeta?.noindex ? { index: false, follow: false } : undefined,
         openGraph: {
-          title: item.seoTitle || item.title,
-          description: item.seoDescription || item.summary,
+          title: item.articleMeta?.ogTitle || item.seoTitle || item.title,
+          description: item.articleMeta?.ogDescription || item.seoDescription || item.summary,
+          images: item.articleMeta?.ogImage || item.articleMeta?.featuredImageUrl ? [{ url: item.articleMeta.ogImage || item.articleMeta.featuredImageUrl }] : undefined,
         },
       }
     : { title: "Resource not found" };

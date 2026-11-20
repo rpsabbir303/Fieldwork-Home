@@ -74,6 +74,7 @@ export function ContentCard({ item, compact = false }: { item: ContentItem; comp
   return (
     <TrackedLink className={`content-card ${compact ? "compact" : ""}`} href={sectionPath(item)}>
       <div className={`card-art ${tones[item.category] ?? "neutral"}`} aria-hidden="true">
+        {item.articleMeta?.featuredImageUrl && <img className="card-photo" src={item.articleMeta.featuredImageUrl} alt="" loading="lazy" />}
         <div className="art-grid" />
         <div className="art-shape one" />
         <div className="art-shape two" />

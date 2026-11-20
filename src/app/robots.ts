@@ -1,8 +1,9 @@
 import type { MetadataRoute } from "next";
 export default function robots(): MetadataRoute.Robots {
+  if (process.env.APP_MODE === "admin") return { rules: { userAgent: "*", disallow: "/" } };
   const base = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
   return {
-    rules: { userAgent: "*", allow: "/", disallow: ["/admin/", "/search", "/api/"] },
+    rules: { userAgent: "*", allow: "/", disallow: ["/admin", "/admin/", "/search", "/api/"] },
     sitemap: new URL("/sitemap.xml", base).toString(),
   };
 }

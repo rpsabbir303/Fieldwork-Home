@@ -13,6 +13,7 @@ import {
 import { Breadcrumbs, ContentCard, SectionHeading } from "./content-ui";
 import { MaintenanceChecklist } from "./maintenance-checklist";
 import { PrintButton } from "./print-button";
+import { ArticleRichContent } from "./article-rich-content";
 
 export async function Landing({
   section,
@@ -92,8 +93,8 @@ export async function Landing({
   );
 }
 
-export async function Detail({ section, slug }: { section: SectionKey; slug: string }) {
-  const item = await getContent(section, slug);
+export async function Detail({ section, slug, previewItem }: { section: SectionKey; slug: string; previewItem?: ContentItem }) {
+  const item = previewItem ?? await getContent(section, slug);
   if (!item) notFound();
   const all = await getCatalog();
   const related = (item.related ?? [])
@@ -116,17 +117,20 @@ export async function Detail({ section, slug }: { section: SectionKey; slug: str
           <h1>{item.title}</h1>
           <p className="lead">{item.summary}</p>
           <div className="detail-meta">
-            <span>Fieldwork Home editorial</span>
+            <span>{item.articleMeta?.author || "Fieldwork Home editorial"}</span>
             <span>
               {item.updatedAt
                 ? `Updated ${new Intl.DateTimeFormat("en-US", { dateStyle: "long", timeZone: "UTC" }).format(new Date(item.updatedAt))}`
                 : "Starter resource · November 19, 2026"}
             </span>
           </div>
+          {item.articleMeta?.tags?.length ? <div className="article-public-tags" aria-label="Article tags">{item.articleMeta.tags.map(tag => <span key={tag}>{tag}</span>)}</div> : null}
         </div>
       </div>
       <div className="container detail-layout">
         <article className="article-body">
+          {item.articleMeta?.featuredImageUrl && <figure className="article-featured"><img src={item.articleMeta.featuredImageUrl} alt={item.articleMeta.featuredImageAlt} /><figcaption>{item.articleMeta.featuredImageAlt}</figcaption></figure>}
+          {item.articleMeta?.introduction && <p className="article-introduction">{item.articleMeta.introduction}</p>}
           {(item.tools?.length || item.materials?.length) && (
             <div className="essentials-grid">
               {item.tools?.length ? (
@@ -160,6 +164,7 @@ export async function Detail({ section, slug }: { section: SectionKey; slug: str
               </div>
             </aside>
           )}
+          {item.richDoc && <ArticleRichContent document={item.richDoc} />}
           {item.blocks.map((block, i) => (
             <section key={i} className="article-section">
               <h2>{block.heading}</h2>

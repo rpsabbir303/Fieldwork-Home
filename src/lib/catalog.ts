@@ -1,7 +1,8 @@
 import { db, databaseConfigured } from "./db";
 import { ContentItem, SectionKey, starterContent } from "./content";
+import { isArticleBody } from "./article";
 
-function fromRecord(record: {
+export function fromRecord(record: {
   section: string;
   slug: string;
   title: string;
@@ -23,6 +24,8 @@ function fromRecord(record: {
     summary: record.summary,
     category: record.category,
     blocks: Array.isArray(record.body) ? (record.body as ContentItem["blocks"]) : [],
+    richDoc: isArticleBody(record.body) ? record.body.content : undefined,
+    articleMeta: isArticleBody(record.body) ? record.body.meta : undefined,
     related: Array.isArray(record.related) ? (record.related as string[]) : [],
     tools: Array.isArray(record.tools) ? (record.tools as string[]) : [],
     materials: Array.isArray(record.materials) ? (record.materials as string[]) : [],

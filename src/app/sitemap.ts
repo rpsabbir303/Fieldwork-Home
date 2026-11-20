@@ -23,7 +23,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/disclaimer",
     "/editorial-policy",
     ...projectCategories.map((category) => `/projects/category/${slugify(category)}`),
-    ...(await getCatalog()).map(sectionPath),
+    ...(await getCatalog()).filter(item => !item.articleMeta?.noindex).map(sectionPath),
   ];
   return paths.map((path) => ({
     url: new URL(path, base).toString(),

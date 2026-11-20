@@ -7,6 +7,7 @@ import { z } from "zod";
 import { createSession, clearSession, requireAdmin } from "@/lib/auth";
 import { db, databaseConfigured } from "@/lib/db";
 import { SectionKey, slugify } from "@/lib/content";
+import { legacyToRich, validateRichDoc } from "@/lib/article";
 
 const loginSchema = z.object({ email: z.email().max(254), password: z.string().min(1).max(500) });
 const contentSchema = z.object({
@@ -93,6 +94,8 @@ export async function saveContentAction(formData: FormData) {
     update: { name: data.category },
     create: { name: data.category, slug: categorySlug, section: data.section },
   });
+  const existing = data.id ? await db.content.findUnique({ where: { id: data.id }, select: { publishedAt: true, section: true, slug: true } }) : null;
+  if (data.id && !existing) redirect("/admin/content?error=missing");
   const payload = {
     section: data.section as SectionKey,
     title: data.title,
@@ -108,7 +111,7 @@ export async function saveContentAction(formData: FormData) {
     status: data.status,
     seoTitle: data.seoTitle || null,
     seoDescription: data.seoDescription || null,
-    publishedAt: data.status === "PUBLISHED" ? new Date() : null,
+    publishedAt: data.status === "PUBLISHED" ? (existing?.publishedAt ?? new Date()) : null,
   };
   try {
     if (data.id) await db.content.update({ where: { id: data.id }, data: payload });
@@ -119,6 +122,7 @@ export async function saveContentAction(formData: FormData) {
   revalidatePath("/");
   revalidatePath(`/${data.section}`);
   revalidatePath(`/${data.section}/${data.slug}`);
+  if (existing && (existing.section !== data.section || existing.slug !== data.slug)) revalidatePath(`/${existing.section}/${existing.slug}`);
   revalidatePath("/search");
   revalidatePath("/admin");
   redirect("/admin?saved=1");
@@ -135,7 +139,7 @@ export async function deleteContentAction(formData: FormData) {
     revalidatePath("/search");
     revalidatePath("/admin");
   }
-  redirect("/admin?deleted=1");
+  redirect(item?.section === "guides" ? "/admin/articles?deleted=1" : "/admin?deleted=1");
 }
 export async function toggleStatusAction(formData: FormData) {
   await requireAdmin();
@@ -154,4 +158,77 @@ export async function toggleStatusAction(formData: FormData) {
   revalidatePath("/search");
   revalidatePath("/admin");
   redirect("/admin?updated=1");
+}
+
+const categorySchema = z.object({
+  id: z.string().optional(),
+  name: z.string().trim().min(2).max(80),
+  section: z.enum(["guides", "projects", "cost-guides", "materials-tools", "design-ideas", "home-maintenance"]),
+});
+export async function saveCategoryAction(formData: FormData) {
+  await requireAdmin();
+  const parsed = categorySchema.safeParse(Object.fromEntries(formData.entries()));
+  if (!parsed.success) redirect("/admin/categories?error=validation");
+  const { id, name, section } = parsed.data;
+  const slug = `${section}-${slugify(name)}`;
+  const duplicate = await db.category.findUnique({ where: { slug } });
+  if (duplicate && duplicate.id !== id) redirect("/admin/categories?error=duplicate");
+  if (id) {
+    const existing = await db.category.findUnique({ where: { id }, include: { contents: { select: { id: true } } } });
+    if (!existing) redirect("/admin/categories?error=missing");
+    if (existing.section !== section && existing.contents.length) redirect("/admin/categories?error=section");
+    await db.$transaction(async tx => {
+      await tx.category.update({ where: { id }, data: { name, slug, section } });
+      await tx.content.updateMany({ where: { categoryId: id }, data: { category: name } });
+    });
+  } else await db.category.create({ data: { name, slug, section } });
+  revalidatePath("/admin/categories");
+  revalidatePath("/admin/content");
+  redirect("/admin/categories?saved=1");
+}
+export async function deleteCategoryAction(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  const category = await db.category.findUnique({ where: { id }, include: { _count: { select: { contents: true } } } });
+  if (!category || category._count.contents) redirect("/admin/categories?error=in-use");
+  await db.category.delete({ where: { id } });
+  revalidatePath("/admin/categories");
+  redirect("/admin/categories?deleted=1");
+}
+
+export async function duplicateArticleAction(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  const source = await db.content.findUnique({ where: { id } });
+  if (!source || source.section !== "guides") redirect("/admin/articles?error=missing");
+  const suffix = crypto.randomUUID().slice(0, 8);
+  const copy = await db.content.create({ data: {
+    section: "guides", slug: `${source.slug.slice(0, 165)}-copy-${suffix}`,
+    title: `${source.title.slice(0, 145)} (Copy)`, summary: source.summary,
+    category: source.category, categoryId: source.categoryId,
+    body: source.body as import("@prisma/client").Prisma.InputJsonValue,
+    related: source.related as import("@prisma/client").Prisma.InputJsonValue,
+    tools: source.tools as import("@prisma/client").Prisma.InputJsonValue,
+    materials: source.materials as import("@prisma/client").Prisma.InputJsonValue,
+    safety: source.safety, seoTitle: source.seoTitle, seoDescription: source.seoDescription,
+    status: "DRAFT", publishedAt: null,
+  } });
+  revalidatePath("/admin/articles");
+  redirect(`/admin/articles/edit/${copy.id}?duplicated=1`);
+}
+
+export async function articleStatusAction(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  const status = String(formData.get("status") ?? "");
+  if (status !== "PUBLISHED" && status !== "DRAFT") redirect("/admin/articles?error=status");
+  const item = await db.content.findUnique({ where: { id } });
+  if (!item || item.section !== "guides") redirect("/admin/articles?error=missing");
+  if (status === "PUBLISHED") {
+    const document = validateRichDoc(legacyToRich(item.body));
+    if (item.title.length < 3 || item.summary.length < 20 || !document.ok || document.text.length < 30) redirect("/admin/articles?error=validation");
+  }
+  await db.content.update({ where: { id }, data: { status, publishedAt: status === "PUBLISHED" ? (item.publishedAt ?? new Date()) : null } });
+  revalidatePath("/guides"); revalidatePath(`/guides/${item.slug}`); revalidatePath("/search"); revalidatePath("/admin/articles");
+  redirect("/admin/articles?updated=1");
 }

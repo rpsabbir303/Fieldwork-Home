@@ -4,7 +4,6 @@ import { saveContentAction } from "@/app/admin/actions";
 import { SectionKey, sectionPath } from "@/lib/content";
 
 const sections: { value: SectionKey; label: string }[] = [
-  { value: "guides", label: "Guide / article" },
   { value: "projects", label: "Project guide" },
   { value: "cost-guides", label: "Cost guide" },
   { value: "materials-tools", label: "Material comparison" },
@@ -144,7 +143,7 @@ export function AdminEditor({ item, error }: { item?: Content | null; error?: st
               <div className="editor-fields">
                 <label>
                   Content type
-                  <select name="section" defaultValue={item?.section ?? "guides"}>
+                  <select name="section" defaultValue={item?.section ?? "projects"}>
                     {sections.map((section) => (
                       <option key={section.value} value={section.value}>
                         {section.label}
@@ -205,6 +204,7 @@ export function AdminEditor({ item, error }: { item?: Content | null; error?: st
                 View published page
               </Link>
             )}
+            {item && <Link className="text-link" href={`/admin/preview/${item.id}`}>Preview privately</Link>}
           </aside>
         </div>
       </form>
