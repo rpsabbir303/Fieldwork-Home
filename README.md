@@ -44,13 +44,19 @@ Open `http://localhost:3000`. Without `DATABASE_URL`, the public site serves bun
 
    The seed is idempotent and preserves existing edits. Once the database is configured, public content comes from published database rows, so run the seed before relying on the public library.
 
-4. Set `ADMIN_EMAIL` and a unique `ADMIN_PASSWORD` of at least 14 characters in the command environment. Then run:
+4. On Windows PowerShell, create the first administrator with a local hidden password prompt:
+
+   ```powershell
+   powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\create-initial-admin.ps1
+   ```
+
+   Alternatively, set `ADMIN_EMAIL` and a unique `ADMIN_PASSWORD` of at least 14 characters in the command environment. Then run:
 
    ```bash
    npm run admin:create
    ```
 
-   This one-time command stores a bcrypt hash. It updates that account's password if run again. Prefer setting `ADMIN_EMAIL` and `ADMIN_PASSWORD` only in the shell for this command, then remove them from the shell afterward. If you place them in `.env`, remove them after account creation. There is no public signup.
+   This one-time command stores a bcrypt hash and refuses to run when an administrator already exists. The PowerShell wrapper clears the temporary credential environment variables after use. If you place credentials in `.env`, remove them after account creation. There is no public signup.
 
 5. Start the app and visit `/admin/login`. The dashboard shows real content, published, draft, and category counts. Editors can create, edit, publish, unpublish, and delete entries. Deletion asks for confirmation. Admin routes and every mutation check the signed session against an active database administrator. Sessions expire after eight hours.
 

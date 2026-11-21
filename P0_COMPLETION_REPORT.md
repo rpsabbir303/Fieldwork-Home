@@ -3,7 +3,19 @@
 **Date:** November 20, 2026 (Asia/Dhaka)  
 **Scope:** Database, environment, and CMS activation only.
 
+## Initial administrator follow-up — November 20, 2026
+
+- The private administrator command and login flow were inspected. Required fields are an email, a unique password of at least 14 characters, the configured database URL, and a session secret of at least 32 characters. Login is at `/admin/login`; no public signup route was added.
+- A fresh session secret was generated in the private, ignored `.env`. No secret value is included here.
+- The initial-account command now refuses to run if any administrator exists, creates one row, and verifies the stored bcrypt hash against the entered password. A local PowerShell wrapper prompts for the email and hides password entry; temporary credential environment variables are cleared afterward.
+- A read-only pre-creation check found `AdminUser` = 0, `Content` = 32, and `Category` = 25. The session secret is ready. TypeScript typecheck passed.
+- **Creation status:** Pending local credential entry. The account has not yet been created during this follow-up.
+- **Authentication status:** Bcrypt and account-count verification are ready but have not run. Browser login remains unverified.
+- **Remaining blocker:** The administrator must enter the email and password at the local hidden-input prompt. Credentials must not be sent in chat.
+
 ## A. Summary
+
+**Later Phase 2 read-only check (November 20, 2026):** Neon now contains one administrator, 32 content records, and 25 categories. The administrator was created outside this Phase 2 implementation; its login was not verified here because credentials were not supplied to this environment. Phase 2 made no database writes or schema changes. Typecheck, lint, ten tests, and both build modes passed. Article category filtering, authenticated slug availability check, SEO length guidance, and private preview navigation/noindex were completed; see `ADMIN_DASHBOARD_DOCUMENTATION.md`.
 
 The root `.env` contains a private Neon pooled URL for application queries and a matching direct URL for Prisma migrations. On November 20, 2026, the user confirmed that this connection targets the Fieldwork Home Production/default branch in the Neon Console. The existing `20261119_init` migration was applied and verified. The starter seed has now completed, adding 32 published content records and 25 categories. Admin creation remains deferred. No application UI, editorial content, calculator, or unrelated audit item was changed.
 

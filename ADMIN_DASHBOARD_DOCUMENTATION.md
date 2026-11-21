@@ -98,3 +98,9 @@ Authenticated create/edit/autosave/preview/publish/delete flows and live public 
 
 Read-only production database check after Phase 2: 32 content records, 25 categories, 0 admin accounts. With permitted network access, the public-mode production app returned 200 for `/guides`, a seeded article detail, and `/sitemap.xml`; `/admin/articles` returned 404. Authenticated writes and new rich article rendering remain unverified.
 
+### Phase 2 follow-up, November 20, 2026
+
+The existing Phase 2 editor and publishing architecture was retained. Article listing now supports a category filter that stays applied across status tabs and pagination. The slug field checks availability on blur using authenticated `GET /admin/articles/slug`; `POST /admin/articles/save` still enforces uniqueness when writing. The SEO panel shows title and description character counts and fallback warnings. Private preview is explicitly noindex and links guide articles back to their dedicated editor.
+
+No migration or content write was made. A read-only Neon check found one administrator, 32 content records, and 25 categories. Typecheck, lint (five existing image warnings), ten unit tests, and public/admin production builds passed. Authenticated write and login flows remain unverified because no administrator credentials or session were supplied to this environment. Future Phase 3 work remains revision history, scheduling, durable media uploads, and authenticated end-to-end coverage.
+
